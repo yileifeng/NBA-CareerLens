@@ -1,6 +1,6 @@
+.env
+instance/
+*.db
 __pycache__/
 *.py[cod]
-.env
-.vscode/
-.idea/
-.pytest_cache/
+.pytest_cac
