@@ -81,8 +81,8 @@ def import_db_player_stats(season: str):
             # updated player season stats values
             values = {
                 "team_id": clean_val(row, "TEAM_ID", int),
-                "team_abbrev": clean_val(row, "TEAM_ABBREV", str),
-                "age": clean_val(row, "AGE", float),
+                "team_abbreviation": clean_val(row, "TEAM_ABBREVIATION", str),
+                "age": clean_val(row, "AGE", int),
                 "games_played": clean_val(row, "GP", int),
                 "minutes_per_game": clean_val(row, "MIN", float),
                 "points_per_game": clean_val(row, "PTS", float),
@@ -91,15 +91,15 @@ def import_db_player_stats(season: str):
                 "steals_per_game": clean_val(row, "STL", float),
                 "blocks_per_game": clean_val(row, "BLK", float),
                 "turnovers_per_game": clean_val(row, "TOV", float),
-                "field_goal_percentage": clean_val(row, "FG_PCT", float),
-                "three_point_percentage": clean_val(row, "FG3_PCT", float),
-                "free_throw_percentage": clean_val(row, "FT_PCT", float),
+                "field_goal_pct": clean_val(row, "FG_PCT", float),
+                "three_point_pct": clean_val(row, "FG3_PCT", float),
+                "free_throw_pct": clean_val(row, "FT_PCT", float),
                 "plus_minus": clean_val(row, "PLUS_MINUS", float),
             }
             
             if player_season is None:
                 # create new player season record and add to DB
-                player_season = PlayerSeason(player_id=player_id, season=season, season_type='Regular Season', **values)
+                player_season = PlayerSeason(player_id=player_id, season=season, **values)
                 db.session.add(player_season)
                 inserted += 1
             else:
@@ -108,7 +108,7 @@ def import_db_player_stats(season: str):
                     setattr(player_season, attr, val)
                 updated += 1
 
-            db.session.commit()
+        db.session.commit()
     except Exception:
         db.session.rollback()
         raise

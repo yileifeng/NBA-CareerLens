@@ -1,8 +1,8 @@
-"""Create player and player season tables
+"""Initial database schema
 
-Revision ID: 908aa80e0ac6
+Revision ID: 879ac809b973
 Revises: 
-Create Date: 2026-08-04 22:01:02.997656
+Create Date: 2026-08-07 21:19:06.714532
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '908aa80e0ac6'
+revision = '879ac809b973'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,11 +29,10 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('player_id', sa.Integer(), nullable=False),
     sa.Column('season', sa.String(length=7), nullable=False),
-    sa.Column('season_type', sa.String(length=30), nullable=False),
     sa.Column('team_id', sa.BigInteger(), nullable=True),
-    sa.Column('team_abbrev', sa.String(length=10), nullable=True),
-    sa.Column('age', sa.BigInteger(), nullable=True),
-    sa.Column('games_played', sa.BigInteger(), nullable=True),
+    sa.Column('team_abbreviation', sa.String(length=10), nullable=True),
+    sa.Column('age', sa.Integer(), nullable=True),
+    sa.Column('games_played', sa.Integer(), nullable=True),
     sa.Column('minutes_per_game', sa.Float(), nullable=True),
     sa.Column('points_per_game', sa.Float(), nullable=True),
     sa.Column('rebounds_per_game', sa.Float(), nullable=True),
@@ -41,14 +40,14 @@ def upgrade():
     sa.Column('steals_per_game', sa.Float(), nullable=True),
     sa.Column('blocks_per_game', sa.Float(), nullable=True),
     sa.Column('turnovers_per_game', sa.Float(), nullable=True),
-    sa.Column('field_goal_percentage', sa.Float(), nullable=True),
-    sa.Column('three_point_percentage', sa.Float(), nullable=True),
-    sa.Column('free_throw_percentage', sa.Float(), nullable=True),
+    sa.Column('field_goal_pct', sa.Float(), nullable=True),
+    sa.Column('three_point_pct', sa.Float(), nullable=True),
+    sa.Column('free_throw_pct', sa.Float(), nullable=True),
     sa.Column('plus_minus', sa.Float(), nullable=True),
     sa.Column('collected_time', sa.DateTime(timezone=True), nullable=False),
     sa.ForeignKeyConstraint(['player_id'], ['players.player_id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('player_id', 'season', 'season_type', name='unique_player_season')
+    sa.UniqueConstraint('player_id', 'season', name='unique_player_season')
     )
     # ### end Alembic commands ###
 

@@ -28,13 +28,12 @@ class PlayerSeason(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('players.player_id'), nullable=False)
     
     season = db.Column(db.String(7), nullable=False)
-    season_type = db.Column(db.String(30), nullable=False)
     
     team_id = db.Column(db.BigInteger)
-    team_abbrev = db.Column(db.String(10))
+    team_abbreviation = db.Column(db.String(10))
     
-    age = db.Column(db.BigInteger)
-    games_played = db.Column(db.BigInteger)
+    age = db.Column(db.Integer)
+    games_played = db.Column(db.Integer)
     
     # player statistics 
     minutes_per_game = db.Column(db.Float)
@@ -45,9 +44,9 @@ class PlayerSeason(db.Model):
     blocks_per_game = db.Column(db.Float)
     turnovers_per_game = db.Column(db.Float)
     
-    field_goal_percentage = db.Column(db.Float)
-    three_point_percentage = db.Column(db.Float)
-    free_throw_percentage = db.Column(db.Float)
+    field_goal_pct = db.Column(db.Float)
+    three_point_pct = db.Column(db.Float)
+    free_throw_pct = db.Column(db.Float)
     plus_minus = db.Column(db.Float)
     
     collected_time = db.Column(db.DateTime(timezone=True), nullable=False, default=current_time)
@@ -57,7 +56,7 @@ class PlayerSeason(db.Model):
     
     # setup unique constraint to ensure that each player can only have one entry per season and season type
     __table_args__ = (
-        db.UniqueConstraint('player_id', 'season', 'season_type', name='unique_player_season'),
+        db.UniqueConstraint('player_id', 'season', name='unique_player_season'),
     )
     
     # convert Player Season model to dictionary
@@ -66,8 +65,7 @@ class PlayerSeason(db.Model):
             'player_id': self.player_id,
             'name': self.player.player_name,
             'season': self.season,
-            'seasonType': self.season_type,
-            'team': self.team_abbrev,
+            'team': self.team_abbreviation,
             'age': self.age,
             'games_played': self.games_played,
             'minutes_per_game': self.minutes_per_game,
@@ -77,8 +75,8 @@ class PlayerSeason(db.Model):
             'steals_per_game': self.steals_per_game,
             'blocks_per_game': self.blocks_per_game,
             'turnovers_per_game': self.turnovers_per_game,
-            'field_goal_percentage': self.field_goal_percentage,
-            'three_point_percentage': self.three_point_percentage,
-            'free_throw_percentage': self.free_throw_percentage,
+            'field_goal_pct': self.field_goal_pct,
+            'three_point_pct': self.three_point_pct,
+            'free_throw_pct': self.free_throw_pct,
             'plus_minus': self.plus_minus
         }

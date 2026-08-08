@@ -1,0 +1,7 @@
+# To run database migration
+
+python -m flask --app src.app db init
+python -m flask --app src.app db migrate -m "commit message"
+python -m flask --app src.app db upgrade
+
+python -m flask --app src.app collect-season --season [2025-26]
