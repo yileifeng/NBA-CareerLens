@@ -1,8 +1,10 @@
 import os
 import click
+import time
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from prometheus_client import Counter
 
 from src.database import db, migrate
 from src.models import PlayerSeason
@@ -10,6 +12,14 @@ from src.services.collect_data import import_db_player_stats
 from src.services.player_analysis import calc_percentiles, find_similar_comparisons
 
 load_dotenv()
+
+req_count = Counter(
+    "http_requests_total",
+    "Total number of app requests received"
+)
+request_count = 0
+
+start_time = time.time()
 
 # normalize database URL for SQLAlchemy
 def normalize_db_url(db_url: str) -> str:
@@ -116,6 +126,33 @@ def create_app():
                 "plus_minus": row["plus_minus_percentile"],
             }
         })
+    
+    # route to get app health
+    @app.get("/health")
+    def health():
+        return jsonify({
+            "status": "ok"
+        }), 200
+        
+    # increment request count before each request
+    @app.before_request
+    def count_request():
+        global request_count
+        req_count.inc()
+        
+        if request.path not in ["/health", "/metrics"]:
+            request_count += 1
+        
+    # route to get app metrics
+    @app.get("/metrics")
+    def metrics():
+        runtime = time.time() - start_time
+        requests_per_second = request_count / runtime if runtime > 0 else 0
+        return jsonify({
+            "total_requests": request_count,
+            "requests_per_second": requests_per_second,
+            "uptime": runtime
+        }), 200
 
     return app
 
