@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 from src.database import db, migrate
 from src.models import PlayerSeason
 from src.services.collect_data import import_db_player_stats
+from src.services.player_analysis import calc_percentiles, find_similar_comparisons
 
 load_dotenv()
 
@@ -63,6 +64,58 @@ def create_app():
         except Exception as error:
             click.echo(f"Error occurred while collecting player stats for season {season}: {error}")
             return
+
+    # route to get similar players to selected player in statistical profile        
+    @app.get("/api/players/<int:player_id>/similar")
+    def get_similar_players(player_id):
+        # TODO: POC based only on 25-26 season
+        season = request.args.get("season", "2025-26")
+        limit = request.args.get("limit", default=5, type=int)
+        
+        try:
+            res = find_similar_comparisons(player_id=player_id, season=season, limit=limit)
+            return jsonify({
+                "player_id": player_id,
+                "season": season,
+                "similar_players": res
+            })
+        except ValueError as error:
+            print(f"Error in finding similar players: {error}")
+
+
+    # route to calculate player percentiles in stats categories
+    @app.get("/api/players/<int:player_id>/analysis")
+    def get_player_analysis(player_id):
+        # TODO: POC based only on 25-26 season
+        season = request.args.get("season", "2025-26")
+        res = calc_percentiles(season)
+        player = res[res["player_id"] == player_id]
+        row = player.iloc[0]
+        
+        # return JSON format of all player percentiles in each cato
+        return jsonify({
+            "player_id": int(row["player_id"]),
+            "player_name": row["player_name"],
+            "season": season,
+            "stats": {
+                "points_per_game": row["points_per_game"],
+                "rebounds_per_game": row["rebounds_per_game"],
+                "assists_per_game": row["assists_per_game"],
+                "steals_per_game": row["steals_per_game"],
+                "blocks_per_game": row["blocks_per_game"],
+            },
+            "percentiles": {
+                "points": row["points_per_game_percentile"],
+                "rebounds": row["rebounds_per_game_percentile"],
+                "assists": row["assists_per_game_percentile"],
+                "steals": row["steals_per_game_percentile"],
+                "blocks": row["blocks_per_game_percentile"],
+                "field_goal_pct": row["field_goal_pct_percentile"],
+                "three_point_pct": row["three_point_pct_percentile"],
+                "free_throw_pct": row["free_throw_pct_percentile"],
+                "plus_minus": row["plus_minus_percentile"],
+            }
+        })
 
     return app
 
