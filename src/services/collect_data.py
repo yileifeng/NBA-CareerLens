@@ -4,6 +4,7 @@ import pandas as pd
 from nba_api.stats.endpoints import leaguedashplayerstats
 from src.database import db
 from src.models import Player, PlayerSeason
+from src.messaging.publisher import publish_season_collected
 
 SEASON_PATTERN = re.compile(r"(\d{4})-(\d{2})")
 REQ_COLS = {
@@ -113,11 +114,16 @@ def import_db_player_stats(season: str):
         db.session.rollback()
         raise
     
-    return {
+    res = {
         "season": season,
         "received": len(rows),
         "inserted": inserted,
         "updated": updated
     }
+    
+    # publish to message queue after DB commit
+    publish_season_collected(season=season, players=len(rows), inserted=inserted, updated=updated)
+    
+    return res
 
             
