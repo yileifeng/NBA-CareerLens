@@ -1,4 +1,6 @@
 import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.preprocessing import StandardScaler
 from src.database import db
 from src.models import PlayerSeason
 
@@ -86,3 +88,37 @@ def build_trajectory_vectors(df: pd.DataFrame, num_seasons: int = 3, stats: list
         })
         
     return pd.DataFrame(res)
+
+# discover similar player trajectories over multi-seasons
+def find_similar_trajectories(player_id: int, df: pd.DataFrame, num_seasons: int = 3, limit: int = 5, stats: list[str] | None = None) -> list[dict]:
+    vectors_df = build_trajectory_vectors(df=df, num_seasons=num_seasons, stats=stats)
+    trajectory_stats = vectors_df["trajectory"].tolist()
+    
+    # standardize stats
+    scaler = StandardScaler()
+    std_trajectories = scaler.fit_transform(trajectory_stats)
+    
+    # find player
+    player_idx = vectors_df.index[vectors_df["player_id"] == player_id][0]
+    position = vectors_df.index.get_loc(player_idx)
+    # find similarity scores to other trajectories
+    sim_scores = cosine_similarity(std_trajectories[position].reshape(1, -1), std_trajectories)[0]
+    
+    sim_df = vectors_df[["player_id", "player_name", "trajectory"]].copy()
+    sim_df["similarity"] = sim_scores
+    # remove self
+    sim_df = sim_df[sim_df["player_id"] != player_id]
+    # sort similarity scores and obtain top 5
+    sim_df = sim_df.sort_values("similarity", ascending=False).head(limit)
+    
+    res = []
+    # structure similarity results output object
+    for _, row in sim_df.iterrows():
+        res.append({
+            "player_id": int(row["player_id"]),
+            "player_name": row["player_name"],
+            "similarity": float(row["similarity"]),
+            "trajectory": [val for val in row["trajectory"]]
+        })
+
+    return res

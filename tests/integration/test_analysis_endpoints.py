@@ -77,3 +77,46 @@ def test_player_analysis_endpoint(client, monkeypatch):
     assert body["stats"]["points_per_game"] == 23.9
     assert body["percentiles"]["assists"] == 97.4
     assert body["percentiles"]["points"] == 90.5
+    
+# test find similar player trajectories endpoint
+def test_trajectory_comps_endpoint(client, monkeypatch):
+    mock_trajectory_df = pd.DataFrame([
+        {
+            "player_id": 1,
+            "player_name": "Aaron Knight"
+        }
+    ])
+    mock_comps = [
+        {
+            "player_id": 2,
+            "player_name": "Sim player",
+            "similarity": 0.95,
+            "trajectory": [
+                18.0, 2.2, 4.5,
+                20.0, 2.5, 5.5,
+                24.5, 3.1, 6.5
+            ]
+        }
+    ]
+    
+    # override build trajectory dataframe
+    monkeypatch.setattr(app_module, "build_df", lambda: mock_trajectory_df.copy())
+    
+    # mock find sim trajectories method
+    def mock_find_sim_trajectories(player_id: int, df: pd.DataFrame, num_seasons: int, limit: int):
+        assert player_id == 1
+        assert num_seasons == 3
+        assert limit == 5
+        return mock_comps
+    
+    # override find similar trajectories method
+    monkeypatch.setattr(app_module, "find_similar_trajectories", mock_find_sim_trajectories)
+    
+    res = client.get("/api/players/1/trajectory-comp?seasons=3&limit=5")
+    
+    assert res.status_code == 200
+    body = res.get_json()
+    assert body["player_id"] == 1
+    assert body["player_name"] == "Aaron Knight"
+    assert body["seasons"] == 3
+    assert body["trajectory_comparisons"]== mock_comps

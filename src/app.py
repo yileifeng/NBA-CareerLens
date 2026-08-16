@@ -12,6 +12,7 @@ from src.services.collect_data import import_db_player_stats
 from src.services.player_analysis import calc_percentiles, find_similar_comparisons
 from src.services.season_utils import generate_seasons
 from src.services.data_summary import get_summary
+from src.services.trajectory_analysis import build_df, find_similar_trajectories
 
 load_dotenv()
 
@@ -183,6 +184,33 @@ def create_app():
         
         for season in summary["seasons"]:
             click.echo(f"- {season['season']}: {season['player_count']} players")
+            
+    # route to obtain players with similar trajectories to player id
+    @app.get("/api/players/<int:player_id>/trajectory-comp")
+    def get_trajectory_comps(player_id: int):
+        num_seasons = request.args.get("seasons", default=3, type=int)
+        limit = request.args.get("limit", default=5, type=int)
+        
+        try:
+            # compute players with most limit similar trajectories
+            trajectory_df = build_df()
+            comps = find_similar_trajectories(player_id=player_id, df=trajectory_df, num_seasons=num_seasons, limit=limit)
+            
+            # find target player
+            target_player = trajectory_df[trajectory_df["player_id"] == player_id]
+            player_name = target_player.iloc[0]["player_name"]
+            
+            return jsonify({
+                "player_id": player_id,
+                "player_name": player_name,
+                "seasons": num_seasons,
+                "trajectory_comparisons": comps
+            }), 200
+            
+        except ValueError as error:
+            return jsonify({
+                "error": str(error)
+            }), 404
 
     return app
 
