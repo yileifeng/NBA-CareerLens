@@ -120,6 +120,7 @@ def import_db_player_stats(season: str):
         "inserted": inserted,
         "updated": updated
     }
+    print(f"Finished collecting player stats for {season}: {len(rows)} received, {inserted} inserted, {updated} updated")
     
     # publish to message queue after DB commit
     publish_season_collected(season=season, players=len(rows), inserted=inserted, updated=updated)

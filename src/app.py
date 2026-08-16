@@ -10,6 +10,8 @@ from src.database import db, migrate
 from src.models import PlayerSeason
 from src.services.collect_data import import_db_player_stats
 from src.services.player_analysis import calc_percentiles, find_similar_comparisons
+from src.services.season_utils import generate_seasons
+from src.services.data_summary import get_summary
 
 load_dotenv()
 
@@ -67,17 +69,35 @@ def create_app():
     # collect and store one NBA season
     @app.cli.command("collect-season")
     @click.option("--season", default="2025-26", help="NBA Season in format YYYY-YY")
-    def collect_season_data(season):
+    def collect_season_data(season: str):
         click.echo(f"Collecting player stats for season {season}...")
         try:
             res = import_db_player_stats(season)
         except Exception as error:
             click.echo(f"Error occurred while collecting player stats for season {season}: {error}")
             return
+        
+    # collect and store multiple NBA seasons
+    @app.cli.command("collect-seasons")
+    @click.option("--start-season", required=True, help="NBA starting season in format YYYY-YY")
+    @click.option("--end-season", required=True, help="NBA ending season in format YYYY-YY")
+    @click.option("--delay", default=2.0, show_default=True, type=float, help="Delay between requests")
+    def collect_seasons_data(start_season: str, end_season: str, delay: float):
+        seasons = generate_seasons(start_season=start_season, end_season=end_season)
+        click.echo(f"Collecting player stats for {len(seasons)} seasons...")
+
+        # collect data for each NBA season
+        for season in seasons:
+            try:
+                res = import_db_player_stats(season)
+                time.sleep(delay)
+            except Exception as error:
+                click.echo(f"Error occurred while collecting player stats for season {season}: {error}")
+                return
 
     # route to get similar players to selected player in statistical profile        
     @app.get("/api/players/<int:player_id>/similar")
-    def get_similar_players(player_id):
+    def get_similar_players(player_id: int):
         # TODO: POC based only on 25-26 season
         season = request.args.get("season", "2025-26")
         limit = request.args.get("limit", default=5, type=int)
@@ -153,6 +173,16 @@ def create_app():
             "requests_per_second": requests_per_second,
             "uptime": runtime
         }), 200
+        
+    # get a summary of data collected
+    @app.cli.command("collection-summary")
+    def collection_summary():
+        summary = get_summary()
+        click.echo(f"Unique players: {summary['players']}")
+        click.echo(f"Player season records: {summary['player_seasons']}")
+        
+        for season in summary["seasons"]:
+            click.echo(f"- {season['season']}: {season['player_count']} players")
 
     return app
 
