@@ -4,4 +4,14 @@ python -m flask --app src.app db init
 python -m flask --app src.app db migrate -m "commit message"
 python -m flask --app src.app db upgrade
 
-python -m flask --app src.app collect-season --season [2025-26]
+Terminal 1: 
+docker compose up rabbitmq
+
+Terminal 2: 
+python -m src.messaging.consumer
+
+Terminal 3: 
+python -m flask --app src.app collect-season --season [YYYY-YY]
+python -m flask --app src.app collect-seasons --start-season [YYYY-YY] --end-season [YYYY-YY]
+
+python -m flask --app src.app run --debug

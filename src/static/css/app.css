@@ -30,13 +30,25 @@ body {
     padding: 1rem;
 }
 
-.comparison-card {
+.similarity-score {
+    font-weight: 600;
+}
+
+.comp-card {
     background-color: #f8fafc;
     border: 1px solid #e5e7eb;
     border-radius: 0.75rem;
     padding: 1rem;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
-.similarity-score {
-    font-weight: 600;
+.comp-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 8%);
+}
+
+.comp-card .table {
+    font-size: 0.9rem;
 }

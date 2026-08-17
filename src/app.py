@@ -145,6 +145,33 @@ def create_app():
             except Exception as error:
                 click.echo(f"Error occurred while collecting player stats for season {season}: {error}")
                 return
+            
+    # route to get historical data for a selected player
+    @app.get("/api/players/<int:player_id>/seasons")
+    def get_player_history(player_id: int):
+        player = db.session.get(Player, player_id)
+        seasons = db.session.execute(db.select(PlayerSeason).where(PlayerSeason.player_id == player_id).order_by(PlayerSeason.season)).scalars().all()
+        
+        return jsonify({
+            "player_id": player.player_id,
+            "player_name": player.player_name,
+            "seasons": [
+                {
+                    "season": row.season,
+                    "team_abbreviation": row.team_abbreviation,
+                    "age": row.age,
+                    "games_played": row.games_played,
+                    "minutes_per_game": row.minutes_per_game,
+                    "points_per_game": row.points_per_game,
+                    "rebounds_per_game": row.rebounds_per_game,
+                    "assists_per_game": row.assists_per_game,
+                    "field_goal_pct": row.field_goal_pct,
+                    "three_point_pct": row.three_point_pct,
+                    "free_throw_pct": row.free_throw_pct,
+                }
+                for row in seasons
+            ],
+        }), 200
 
     # route to get similar players to selected player in statistical profile        
     @app.get("/api/players/<int:player_id>/similar")
@@ -158,8 +185,9 @@ def create_app():
             return jsonify({
                 "player_id": player_id,
                 "season": season,
-                "similar_players": res
+                "similar_players": res or []
             })
+
         except ValueError as error:
             return jsonify({
                 "error": str(error)
@@ -255,13 +283,19 @@ def create_app():
                 "player_id": player_id,
                 "player_name": player_name,
                 "seasons": num_seasons,
-                "trajectory_comparisons": comps
+                "trajectory_comparisons": comps or []
             }), 200
             
         except ValueError as error:
             return jsonify({
                 "error": str(error)
             }), 404
+            
+        except Exception as error:
+            print(f"Trajectory comparison error: {error}")
+            return jsonify({
+                "error": "Unable to calculate trajectory comparisons"
+            }), 500
             
     # route to obtain projections for players for next season
     @app.get("/api/players/<int:player_id>/projection")
