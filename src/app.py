@@ -1,6 +1,7 @@
 import os
 import click
 import time
+import json
 
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, render_template
@@ -46,6 +47,76 @@ def create_app():
     @app.get("/")
     def home():
         return render_template("index.html")
+    
+    # import existing DB data from JSON (needed for deployed app)
+    @app.cli.command("import-data")
+    @click.option("--input-file", default="careerlens_data.json", help="Input JSON file")
+    def import_data(input_file: str):
+        with open(input_file, "r", encoding="utf-8") as file:
+            data = json.load(file)
+        
+        players = 0
+        seasons = 0
+        for player in data["players"]:
+            # add player to DB if needed
+            existing_player = db.session.get(Player, player["player_id"])
+            if existing_player is None:
+                db.session.add(Player(player_id=player["player_id"], player_name = player["player_name"]))
+                players += 1
+        
+        # ensure players have been added successfully
+        db.session.flush()
+        
+        for season in data["player_seasons"]:
+            existing_season = db.session.execute(db.select(PlayerSeason).where(PlayerSeason.player_id == season["player_id"], PlayerSeason.season == season["season"])).scalar_one_or_none()
+            if existing_season:
+                continue
+            # add new player season to DB
+            db.session.add(PlayerSeason(
+                player_id=season["player_id"],
+                season=season["season"],
+                team_id=season["team_id"],
+                team_abbreviation=season[
+                    "team_abbreviation"
+                ],
+                age=season["age"],
+                games_played=season["games_played"],
+                minutes_per_game=season[
+                    "minutes_per_game"
+                ],
+                points_per_game=season[
+                    "points_per_game"
+                ],
+                rebounds_per_game=season[
+                    "rebounds_per_game"
+                ],
+                assists_per_game=season[
+                    "assists_per_game"
+                ],
+                steals_per_game=season[
+                    "steals_per_game"
+                ],
+                blocks_per_game=season[
+                    "blocks_per_game"
+                ],
+                turnovers_per_game=season[
+                    "turnovers_per_game"
+                ],
+                field_goal_pct=season[
+                    "field_goal_pct"
+                ],
+                three_point_pct=season[
+                    "three_point_pct"
+                ],
+                free_throw_pct=season[
+                    "free_throw_pct"
+                ],
+                plus_minus=season["plus_minus"]
+            ))
+            seasons += 1
+        
+        db.session.commit()
+        click.echo(f"Imported {players} players and {seasons} player seasons of data from JSON input")
 
     # route to import player stats for a given season    
     @app.get("/api/player-seasons")
@@ -120,7 +191,7 @@ def create_app():
     # collect and store one NBA season
     @app.cli.command("collect-season")
     @click.option("--season", default="2025-26", help="NBA Season in format YYYY-YY")
-    def collect_season_data(season: str):
+    def collect_season(season: str):
         click.echo(f"Collecting player stats for season {season}...")
         try:
             res = import_db_player_stats(season)
@@ -312,6 +383,50 @@ def create_app():
             return jsonify({
                 "error": str(error)
             }), 404
+
+    # export data to JSON
+    @app.cli.command("export-data")
+    @click.option("--output", default="careerlens_data.json", help="Output JSON file")
+    def export_data(output: str):
+        players = db.session.execute(db.select(Player).order_by(Player.player_id)).scalars().all()
+        player_seasons = db.session.execute(db.select(PlayerSeason).order_by(PlayerSeason.player_id, PlayerSeason.season)).scalars().all()
+        # format data
+        data = {
+            "players": [
+                {
+                    "player_id": player.player_id,
+                    "player_name": player.player_name,
+                }
+                for player in players
+            ],
+            "player_seasons": [
+                {
+                    "player_id": row.player_id,
+                    "season": row.season,
+                    "team_id": row.team_id,
+                    "team_abbreviation": row.team_abbreviation,
+                    "age": row.age,
+                    "games_played": row.games_played,
+                    "minutes_per_game": row.minutes_per_game,
+                    "points_per_game": row.points_per_game,
+                    "rebounds_per_game": row.rebounds_per_game,
+                    "assists_per_game": row.assists_per_game,
+                    "steals_per_game": row.steals_per_game,
+                    "blocks_per_game": row.blocks_per_game,
+                    "turnovers_per_game": row.turnovers_per_game,
+                    "field_goal_pct": row.field_goal_pct,
+                    "three_point_pct": row.three_point_pct,
+                    "free_throw_pct": row.free_throw_pct,
+                    "plus_minus": row.plus_minus,
+                }
+                for row in player_seasons
+            ]
+        }
+        # export to JSON file
+        with open(output, "w", encoding="utf-8") as file:
+            json.dump(data, file)
+
+        click.echo(f"Exported {len(players)} players and {len(player_seasons)} player seasons to {output}")
 
     return app
 
