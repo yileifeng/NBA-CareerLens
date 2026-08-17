@@ -3,11 +3,11 @@ import click
 import time
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 from prometheus_client import Counter
 
 from src.database import db, migrate
-from src.models import PlayerSeason
+from src.models import Player, PlayerSeason
 from src.services.collect_data import import_db_player_stats
 from src.services.player_analysis import calc_percentiles, find_similar_comparisons
 from src.services.season_utils import generate_seasons
@@ -45,28 +45,77 @@ def create_app():
     # base route
     @app.get("/")
     def home():
-        return """
-        <h1>NBA CareerLens</h1>
-        <p>The application is running.</p>
-        """
+        return render_template("index.html")
 
     # route to import player stats for a given season    
     @app.get("/api/player-seasons")
     def get_player_seasons():
-        # temporary only 2025-26
         season = request.args.get("season")
-        # limit the number of results
-        requested_limit = request.args.get("limit", default=25, type=int)
-        limit = max(1, min(requested_limit, 100))
+        search = request.args.get("search", "").strip()
+
+        page = request.args.get("page", default=1, type=int)
+        per_page = request.args.get("per_page", default=25, type=int)
         
-        query = (db.select(PlayerSeason).where(PlayerSeason.season == season).order_by(PlayerSeason.points_per_game.desc()).limit(limit))
-        players = db.session.execute(query).scalars().all()
+        # join PlayerSeason to Player for search and sorting
+        query = db.select(PlayerSeason).join(Player)
+        # apply season filters
+        if season:
+            query = query.where(PlayerSeason.season == season)
+        # player search
+        if search:
+            query = query.where(Player.player_name.ilike(f"%{search}%"))
+            
+        # pagination
+        query = query.order_by(Player.player_name, PlayerSeason.season.desc())
+        pagination = db.paginate(query, page=page, per_page=per_page, error_out=False)
         
         return jsonify({
-            "season": season,
-            "count": len(players),
-            "players": [player.to_dict() for player in players]
-        })
+            "items": [
+                {
+                    "player_id": row.player_id,
+                    "player_name": row.player.player_name,
+                    "season": row.season,
+                    "team_abbreviation": row.team_abbreviation,
+                    "age": row.age,
+                    "games_played": row.games_played,
+                    "minutes_per_game": row.minutes_per_game,
+                    "points_per_game": row.points_per_game,
+                    "rebounds_per_game": row.rebounds_per_game,
+                    "assists_per_game": row.assists_per_game,
+                    "field_goal_pct": row.field_goal_pct,
+                    "three_point_pct": row.three_point_pct,
+                    "free_throw_pct": row.free_throw_pct,
+                }
+                for row in pagination.items
+            ],
+            "pagination": {
+                "page": pagination.page,
+                "per_page": pagination.per_page,
+                "total_items": pagination.total,
+                "total_pages": pagination.pages,
+                "has_previous": pagination.has_prev,
+                "has_next": pagination.has_next,
+                "previous_page": pagination.prev_num,
+                "next_page": pagination.next_num,
+            },
+            "filters": {
+                "season": season,
+                "search": search,
+            },
+        }), 200
+        
+    # route to get all available seasons
+    @app.get("/api/seasons")
+    def get_available_seasons():
+        seasons = db.session.execute(db.select(PlayerSeason.season).distinct().order_by(PlayerSeason.season.desc())).scalars().all()
+        return jsonify({
+            "seasons": seasons
+        }), 200
+        
+    # route to get player details page
+    @app.get("/players/<int:player_id>")
+    def player_details(player_id: int):
+        return render_template("player.html", player_id=player_id)
     
     # collect and store one NBA season
     @app.cli.command("collect-season")
@@ -112,8 +161,9 @@ def create_app():
                 "similar_players": res
             })
         except ValueError as error:
-            print(f"Error in finding similar players: {error}")
-
+            return jsonify({
+                "error": str(error)
+            }), 404
 
     # route to calculate player percentiles in stats categories
     @app.get("/api/players/<int:player_id>/analysis")

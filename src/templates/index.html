@@ -1,0 +1,84 @@
+{% extends "base.html" %} {% block title %} NBA CareerLens {% endblock %} {% block content %}
+<section class="mb-4">
+    <h1 class="h2 mb-2">Player Stats</h1>
+
+    <p class="text-secondary mb-0">
+        Browse historical player seasons, search for players, and click a player to view a player profile analysis.
+    </p>
+</section>
+
+<section class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label for="season-filter" class="form-label">Season</label>
+
+                <select id="season-filter" class="form-select">
+                    <option value="">All seasons</option>
+                </select>
+            </div>
+
+            <!-- Player search bar -->
+            <div class="col-md-6">
+                <label for="player-search" class="form-label">Search player</label>
+
+                <input id="player-search" type="search" class="form-control" placeholder="Enter a player name" />
+            </div>
+
+            <div class="col-md-3 d-grid">s
+                <button id="search-button" type="button" class="btn btn-primary">Search</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between">
+        <span class="fw-semibold">Player seasons</span>
+
+        <span id="result-count" class="text-secondary small"></span>
+    </div>
+
+    <div id="loading-message" class="text-center py-5">Loading player statistics...</div>
+    <div id="error-message" class="alert alert-danger m-3 d-none" role="alert"></div>
+
+    <!-- Historical player data table view -->
+    <div id="table-container" class="table-responsive d-none">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Player</th>
+                    <th>Season</th>
+                    <th>Team</th>
+                    <th>Age</th>
+                    <th>GP</th>
+                    <th>MPG</th>
+                    <th>PPG</th>
+                    <th>RPG</th>
+                    <th>APG</th>
+                    <th>FG%</th>
+                    <th>3P%</th>
+                    <th>FT%</th>
+                </tr>
+            </thead>
+
+            <tbody id="player-table-body"></tbody>
+        </table>
+    </div>
+
+    <div id="empty-message" class="text-center text-secondary py-5 d-none">
+        No players matched the selected filters.
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer bg-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <button id="previous-page" type="button" class="btn btn-outline-secondary">Previous</button>
+            <span id="page-information" class="text-secondary">Page 1</span>
+            <button id="next-page" type="button" class="btn btn-outline-secondary">Next</button>
+        </div>
+    </div>
+</section>
+{% endblock %} {% block scripts %}
+<script src="{{ url_for('static', filename='js/player_table.js') }}"></script>
+{% endblock %}
