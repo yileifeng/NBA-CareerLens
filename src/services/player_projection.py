@@ -123,3 +123,59 @@ def build_projections(trajectory_df: pd.DataFrame, test_season: str = "2024-25",
         "test_season": test_season,
         "test_metadata": metadata_test
     } 
+
+# helper for returning next season string
+def get_next_season(season: str) -> str:
+    start_year = int(season[:4]) + 1
+    end_year = (start_year + 1) % 100
+    return f"{start_year}-{end_year:02d}"
+
+# train model and project a player's stats for next season
+def project_player_stats(trajectory_df: pd.DataFrame, player_id: int, history: int = 3, stats: list[int] | None = None) -> dict:
+    stats = stats or proj_stats
+    # build and train projection model with training samples
+    feats, projs, metadata = build_projection(trajectory_df=trajectory_df, history=history, stats=stats)
+    model = train_projection_model(feats_train=feats, projs_train=projs)
+
+    # find selected player's projections
+    player_rows = trajectory_df[trajectory_df["player_id"] == player_id].copy()
+    player_rows = player_rows.dropna(subset=stats)
+    player_rows = player_rows.sort_values("years_of_experience")
+    
+    # use the most recent history seasons
+    recent_seasons = player_rows.tail(history)
+    player_feats = {}
+    for year, (_, season_row) in enumerate(recent_seasons.iterrows(), start=1):
+        for stat in stats:
+            player_feats[f"year_{year}_{stat}"] = float(season_row[stat])
+            
+    # ensure cols are in same order as when model was trained
+    player_feats_df = pd.DataFrame([player_feats], columns=feats.columns)
+    
+    # make predictions
+    preds = model.predict(player_feats_df)[0]
+    last_row = recent_seasons.iloc[-1]
+    player_name = last_row["player_name"]
+    last_season = last_row["season"]
+    pred_stats = {
+        stat: round(float(val), 2) for stat, val in zip(stats, preds)
+    }
+    
+    # obtain real player stats data in recent seasons
+    latest_stats = []
+    for _, row in recent_seasons.iterrows():
+        latest_stats.append({
+            "season": row["season"],
+            "points_per_game": float(row["points_per_game"]),
+            "rebounds_per_game": float(row["rebounds_per_game"]),
+            "assists_per_game": float(row["assists_per_game"])
+        })
+        
+    return {
+        "player_id": int(player_id),
+        "player_name": player_name,
+        "latest_season": last_season,
+        "projected_season": get_next_season(last_season),
+        "recent_stats": latest_stats,
+        "projected_stats": pred_stats,
+    }

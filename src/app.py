@@ -13,6 +13,7 @@ from src.services.player_analysis import calc_percentiles, find_similar_comparis
 from src.services.season_utils import generate_seasons
 from src.services.data_summary import get_summary
 from src.services.trajectory_analysis import build_df, find_similar_trajectories
+from src.services.player_projection import project_player_stats
 
 load_dotenv()
 
@@ -53,7 +54,7 @@ def create_app():
     @app.get("/api/player-seasons")
     def get_player_seasons():
         # temporary only 2025-26
-        season = request.args.get("season", "2025-26")
+        season = request.args.get("season")
         # limit the number of results
         requested_limit = request.args.get("limit", default=25, type=int)
         limit = max(1, min(requested_limit, 100))
@@ -207,6 +208,22 @@ def create_app():
                 "trajectory_comparisons": comps
             }), 200
             
+        except ValueError as error:
+            return jsonify({
+                "error": str(error)
+            }), 404
+            
+    # route to obtain projections for players for next season
+    @app.get("/api/players/<int:player_id>/projection")
+    def get_player_projections(player_id: int):
+        history = request.args.get("history", default=3, type=int)
+        try:
+            # call method to predict player stats for next season
+            trajectory_df = build_df()
+            projection = project_player_stats(trajectory_df=trajectory_df, player_id=player_id, history=history)
+            
+            return jsonify(projection), 200
+
         except ValueError as error:
             return jsonify({
                 "error": str(error)
