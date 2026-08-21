@@ -127,6 +127,10 @@ def create_app():
         page = request.args.get("page", default=1, type=int)
         per_page = request.args.get("per_page", default=25, type=int)
         
+        team = request.args.get("team", "").strip()
+        sort_by = request.args.get("sort_by", default="player_name")
+        sort_order = request.args.get("sort_order", default="asc").lower()
+        
         # join PlayerSeason to Player for search and sorting
         query = db.select(PlayerSeason).join(Player)
         # apply season filters
@@ -135,6 +139,31 @@ def create_app():
         # player search
         if search:
             query = query.where(Player.player_name.ilike(f"%{search}%"))
+        # apply team filters
+        if team:
+            query = query.where(PlayerSeason.team_abbreviation == team)
+                    
+        sortable_columns = {
+            "player_name": Player.player_name,
+            "season": PlayerSeason.season,
+            "team_abbreviation": PlayerSeason.team_abbreviation,
+            "age": PlayerSeason.age,
+            "games_played": PlayerSeason.games_played,
+            "minutes_per_game": PlayerSeason.minutes_per_game,
+            "points_per_game": PlayerSeason.points_per_game,
+            "rebounds_per_game": PlayerSeason.rebounds_per_game,
+            "assists_per_game": PlayerSeason.assists_per_game,
+            "field_goal_pct": PlayerSeason.field_goal_pct,
+            "three_point_pct": PlayerSeason.three_point_pct,
+            "free_throw_pct": PlayerSeason.free_throw_pct,
+        }
+        
+        # apply column sorting
+        sort_column = sortable_columns.get(sort_by, Player.player_name)
+        if sort_order == "desc":
+            query = query.order_by(sort_column.desc())
+        else:
+            query = query.order_by(sort_column.asc())
             
         # pagination
         query = query.order_by(Player.player_name, PlayerSeason.season.desc())
@@ -171,8 +200,11 @@ def create_app():
             },
             "filters": {
                 "season": season,
+                "team": team,
                 "search": search,
-            },
+                "sort_by": sort_by,
+                "sort_order": sort_order,
+            }
         }), 200
         
     # route to get all available seasons
@@ -181,6 +213,18 @@ def create_app():
         seasons = db.session.execute(db.select(PlayerSeason.season).distinct().order_by(PlayerSeason.season.desc())).scalars().all()
         return jsonify({
             "seasons": seasons
+        }), 200
+
+    # route to get all available teams
+    @app.get("/api/teams")
+    def get_available_teams():
+        season = request.args.get("season")
+        query = db.select(PlayerSeason.team_abbreviation).where(PlayerSeason.team_abbreviation.is_not(None)).distinct()
+        if season:
+            query = query.where(PlayerSeason.season == season)
+        teams = db.session.execute(query.order_by(PlayerSeason.team_abbreviation)).scalars().all()
+        return jsonify({
+            "teams": teams,
         }), 200
         
     # route to get player details page
@@ -365,7 +409,7 @@ def create_app():
         except Exception as error:
             print(f"Trajectory comparison error: {error}")
             return jsonify({
-                "error": "Unable to calculate trajectory comparisons"
+                "error": "Not enough data to calculate historical player trajectory comparisons"
             }), 500
             
     # route to obtain projections for players for next season

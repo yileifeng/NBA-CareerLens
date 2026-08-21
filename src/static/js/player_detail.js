@@ -29,6 +29,28 @@ const historyContent = document.getElementById('history-content');
 const historyTableBody = document.getElementById('history-table-body');
 const historyCount = document.getElementById('history-count');
 
+const historyCollapse = document.getElementById('history-collapse');
+const historyToggle = document.getElementById('history-toggle');
+const historyToggleText = document.getElementById('history-toggle-text');
+const historyToggleIcon = document.getElementById('history-toggle-icon');
+
+historyCollapse.addEventListener('show.bs.collapse', () => {
+    historyToggleText.textContent = 'Hide table';
+    historyToggleIcon.textContent = '▲';
+});
+
+historyCollapse.addEventListener('hide.bs.collapse', () => {
+    historyToggleText.textContent = 'Show table';
+    historyToggleIcon.textContent = '▼';
+});
+
+const careerChartLoading = document.getElementById('career-chart-loading');
+const careerChartError = document.getElementById('career-chart-error');
+const careerChartContent = document.getElementById('career-chart-content');
+const careerChartCanvas = document.getElementById('career-chart');
+
+let careerChart = null;
+
 // format statistic value
 function formatStat(value) {
     if (value === null || value === undefined) {
@@ -313,6 +335,7 @@ async function loadPlayerHistory() {
 
         // render HTML for player history
         renderPlayerHistory(data.seasons);
+        renderCareerChart(data.seasons);
         historyLoading.classList.add('d-none');
     } catch (error) {
         // hide loading indicator and unhide error messages
@@ -366,6 +389,105 @@ function renderPlayerHistory(seasons) {
 
     historyError.classList.add('d-none');
     historyContent.classList.remove('d-none');
+}
+
+// render player career chart
+function renderCareerChart(seasons) {
+    const labels = seasons.map((season) => season.season);
+    const pointsData = seasons.map((season) => season.points_per_game);
+    const reboundsData = seasons.map((season) => season.rebounds_per_game);
+    const assistsData = seasons.map((season) => season.assists_per_game);
+
+    // Destroy the previous chart before creating another one.
+    if (careerChart) {
+        careerChart.destroy();
+    }
+
+    // build chart configuration
+    careerChart = new Chart(careerChartCanvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Points per game',
+                    data: pointsData,
+                    borderColor: '#0d6efd',
+                    backgroundColor: '#0d6efd',
+                    tension: 0.25,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Rebounds per game',
+                    data: reboundsData,
+                    borderColor: '#198754',
+                    backgroundColor: '#198754',
+                    tension: 0.25,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'Assists per game',
+                    data: assistsData,
+                    borderColor: '#fd7e14',
+                    backgroundColor: '#fd7e14',
+                    tension: 0.25,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label(context) {
+                            const label = context.dataset.label || '';
+
+                            const value = Number(context.parsed.y).toFixed(1);
+
+                            return `${label}: ${value}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Season'
+                    },
+
+                    grid: {
+                        display: false
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+
+                    title: {
+                        display: true,
+                        text: 'Per-game average'
+                    }
+                }
+            }
+        }
+    });
+
+    // hide loading indicators and errors
+    careerChartLoading.classList.add('d-none');
+    careerChartError.classList.add('d-none');
+    careerChartContent.classList.remove('d-none');
 }
 
 async function initializePlayerPage() {

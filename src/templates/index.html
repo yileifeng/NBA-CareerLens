@@ -10,25 +10,57 @@
 <section class="card shadow-sm mb-4">
     <div class="card-body">
         <div class="row g-3 align-items-end">
+            <!-- Seasons dropdown -->
             <div class="col-md-3">
-                <label for="season-filter" class="form-label">Season</label>
+                <label for="season-filter" class="form-label">
+                    Season
+                </label>
 
-                <select id="season-filter" class="form-select">
+                <select
+                    id="season-filter"
+                    class="form-select"
+                >
                     <option value="">All seasons</option>
                 </select>
             </div>
 
+            <!-- Teams dropdown -->
+            <div class="col-md-3">
+                <label for="team-filter" class="form-label">
+                    Team
+                </label>
+
+                <select
+                    id="team-filter"
+                    class="form-select"
+                >
+                    <option value="">All teams</option>
+                </select>
+            </div>
+
             <!-- Player search bar -->
-            <div class="col-md-6">
-                <label for="player-search" class="form-label">Search player</label>
+            <div class="col-md-4">
+                <label for="player-search" class="form-label">
+                    Search player
+                </label>
 
-                <input id="player-search" type="search" class="form-control" placeholder="Enter a player name" />
+                <input
+                    id="player-search"
+                    type="search"
+                    class="form-control"
+                    placeholder="Search player"
+                >
             </div>
 
-            <div class="col-md-3 d-grid">
-                <button id="search-button" type="button" class="btn btn-primary">Search</button>
+            <div class="col-md-2 d-grid">
+                <button
+                    id="search-button"
+                    type="button"
+                    class="btn btn-primary"
+                >
+                    Search
+                </button>
             </div>
-        </div>
     </div>
 </section>
 
@@ -47,18 +79,108 @@
         <table class="table table-hover align-middle mb-0">
             <thead class="table-light">
                 <tr>
-                    <th>Player</th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="player"
+                        >
+                            Player
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
                     <th>Season</th>
-                    <th>Team</th>
-                    <th>Age</th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="team"
+                        >
+                            Team
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="age"
+                        >
+                            Age
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
                     <th>GP</th>
-                    <th>MPG</th>
-                    <th>PPG</th>
-                    <th>RPG</th>
-                    <th>APG</th>
-                    <th>FG%</th>
-                    <th>3P%</th>
-                    <th>FT%</th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="minutes_per_game"
+                        >
+                            MPG
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="points_per_game"
+                        >
+                            PPG
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="rebounds_per_game"
+                        >
+                            RPG
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="assists_per_game"
+                        >
+                            APG
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="field_goal_pct"
+                        >
+                            FG%
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="three_point_pct"
+                        >
+                            3P%
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
+                    <th>
+                        <button
+                            type="button"
+                            class="table-sort-button"
+                            data-sort="free_throw_pct"
+                        >
+                            FT%
+                            <span class="sort-indicator"></span>
+                        </button>
+                    </th>
                 </tr>
             </thead>
 
